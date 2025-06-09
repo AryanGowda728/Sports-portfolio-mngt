@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Student Sport Portfolio</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('admin_dashboard') }}">
+                <span class="brand-icon">⚙️</span>
+                Admin Panel
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <span class="nav-text">Welcome, Admin!</span>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-nav-action" id="theme-switcher">
+                            <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-nav-action" href="{{ url_for('admin_logout') }}">
+                            <span class="material-symbols-outlined">logout</span>
+                            <span class="nav-text-desktop">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid main-content">
+        <div class="content-wrapper">
+            <header class="page-header">
+                <h1 class="page-title">Admin Dashboard</h1>
+                <p class="page-subtitle">Monitor student activities and sports portfolio statistics</p>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="alerts-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-modern" role="alert">
+                                <div class="alert-content">
+                                    <span class="alert-icon {{ category }}">
+                                        {% if category == 'success' %}
+                                            <span class="material-symbols-outlined">check_circle</span>
+                                        {% elif category == 'danger' %}
+                                            <span class="material-symbols-outlined">error</span>
+                                        {% elif category == 'warning' %}
+                                            <span class="material-symbols-outlined">warning</span>
+                                        {% else %}
+                                            <span class="material-symbols-outlined">info</span>
+                                        {% endif %}
+                                    </span>
+                                    <span class="alert-message">{{ message }}</span>
+                                </div>
+                                <button type="button" class="btn-close-modern" data-bs-dismiss="alert" aria-label="Close">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="dashboard-widgets">
+                <div class="widget card-modern">
+                    <h4>
+                        <span class="material-symbols-outlined me-2">group</span>
+                        Total Students
+                    </h4>
+                    <p class="display-4">{{ total_students }}</p>
+                </div>
+                
+                <div class="widget card-modern">
+                    <h4>
+                        <span class="material-symbols-outlined me-2">sports</span>
+                        Students by Sport
+                    </h4>
+                    <canvas id="sports-pie-chart"></canvas>
+                </div>
+                
+                <div class="widget card-modern">
+                    <h4>
+                        <span class="material-symbols-outlined me-2">emoji_events</span>
+                        Tournaments per Sport
+                    </h4>
+                    <div class="tournament-list-grid">
+                        {% for sport in tournaments_per_sport %}
+                            <div class="list-group-item">
+                                <span>{{ sport.SportName }}</span>
+                                <span class="badge bg-primary">{{ sport.tournament_count }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="students-section">
+                <div class="section-header">
+                    <div class="section-title-group">
+                        <h3 class="section-title">
+                            <span class="material-symbols-outlined me-2">school</span>
+                            All Student Profiles
+                        </h3>
+                        <p class="section-subtitle">Search and filter student information</p>
+                    </div>
+                </div>
+
+                <div class="search-filter-section">
+                    <div class="input-group mb-3">
+                        <input type="text" 
+                               id="student-search-input" 
+                               class="form-control rounded-pill-start" 
+                               placeholder="Search by name, USN, branch, sport...">
+                        <button class="btn btn-secondary-modern rounded-pill-end" 
+                                type="button" 
+                                id="clear-search">
+                            <span class="material-symbols-outlined">clear</span>
+                        </button>
+                    </div>
+                    
+                    <div class="sort-buttons">
+                        <button class="btn" data-sort-by="total_wins" data-order="desc">
+                            <span class="material-symbols-outlined">trophy</span>
+                            Wins
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                        <button class="btn" data-sort-by="total_losses" data-order="desc">
+                            <span class="material-symbols-outlined">close</span>
+                            Losses
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                        <button class="btn" data-sort-by="total_matches_played" data-order="desc">
+                            <span class="material-symbols-outlined">sports</span>
+                            Matches
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                        <button class="btn" data-sort-by="last_updated_at_raw" data-order="desc">
+                            <span class="material-symbols-outlined">schedule</span>
+                            Last Updated
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                        <button class="btn" data-sort-by="FirstName" data-order="asc">
+                            <span class="material-symbols-outlined">person</span>
+                            Name
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                        <button class="btn" data-sort-by="USN" data-order="asc">
+                            <span class="material-symbols-outlined">badge</span>
+                            USN
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                        <button class="btn" data-sort-by="Branch" data-order="asc">
+                            <span class="material-symbols-outlined">school</span>
+                            Branch
+                            <span class="material-symbols-outlined">sort</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="student-cards-container" class="student-grid">
+                    {% if students %}
+                        <!-- Cards will be rendered by JavaScript -->
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <span class="material-symbols-outlined">school</span>
+                            </div>
+                            <h4 class="empty-state-title">No Student Data Available</h4>
+                            <p class="empty-state-text">No students have registered yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeSwitcher = document.getElementById('theme-switcher');
+            const themeIcon = document.getElementById('theme-icon');
+            const body = document.body;
+            let myPieChart;
+
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    body.classList.add('dark-theme');
+                    themeIcon.innerText = 'dark_mode';
+                } else {
+                    body.classList.remove('dark-theme');
+                    themeIcon.innerText = 'light_mode';
+                }
+                if (myPieChart) {
+                    const newColor = body.classList.contains('dark-theme') ? '#f8f9fa' : '#212529';
+                    myPieChart.options.plugins.legend.labels.color = newColor;
+                    myPieChart.options.plugins.tooltip.titleColor = newColor;
+                    myPieChart.options.plugins.tooltip.bodyColor = newColor;
+                    myPieChart.update();
+                }
+            };
+
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+
+            themeSwitcher.addEventListener('click', () => {
+                const newTheme = body.classList.contains('dark-theme') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+
+            // Admin Dashboard Logic
+            const studentsData = {{ students | tojson }};
+            const studentsPerSportData = {{ students_per_sport | tojson }};
+            // Sort tournaments per sport in descending order
+            const tournamentsPerSportData = {{ tournaments_per_sport | tojson }}.sort((a, b) => b.tournament_count - a.tournament_count);
+            let currentSortBy = 'USN';
+            let currentOrder = 'asc';
+            let currentSearchQuery = '';
+
+            function renderStudentCards(studentsToRender) {
+                const container = document.getElementById('student-cards-container');
+                container.innerHTML = '';
+
+                if (studentsToRender.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <span class="material-symbols-outlined">search_off</span>
+                            </div>
+                            <h4 class="empty-state-title">No Students Found</h4>
+                            <p class="empty-state-text">No students match your search criteria.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                studentsToRender.forEach((student, index) => {
+                    const card = document.createElement('div');
+                    card.classList.add('student-card', 'card-modern', 'fade-in-up');
+                    card.style.animationDelay = `${index * 0.05}s`;
+                    card.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">${student.FirstName} ${student.LastName}</h5>
+                            <h6 class="card-subtitle">${student.USN}</h6>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">school</span>
+                                Branch: ${student.Branch}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">group</span>
+                                Section: ${student.Section}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">email</span>
+                                Email: ${student.Email}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">phone</span>
+                                Phone: ${student.PhoneNumber}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">sports</span>
+                                Sports: ${student.sports_played_list || 'N/A'}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">trophy</span>
+                                Wins: ${student.total_wins}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">close</span>
+                                Losses: ${student.total_losses}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">sports_score</span>
+                                Matches: ${student.total_matches_played}
+                            </p>
+                            <p class="card-text">
+                                <span class="material-symbols-outlined">schedule</span>
+                                Last Updated: ${student.last_updated_at_display || 'N/A'}
+                            </p>
+                            ${student.AgentName ? `<p class="card-text"><span class="material-symbols-outlined">person</span>Agent: ${student.AgentName}</p>` : ''}
+                            ${student.AgentPhoneNumber ? `<p class="card-text"><span class="material-symbols-outlined">phone</span>Agent Phone: ${student.AgentPhoneNumber}</p>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            function filterAndSortStudents() {
+                let filteredStudents = studentsData.filter(student => {
+                    const searchLower = currentSearchQuery.toLowerCase();
+                    return (
+                        student.FirstName.toLowerCase().includes(searchLower) ||
+                        student.LastName.toLowerCase().includes(searchLower) ||
+                        student.USN.toLowerCase().includes(searchLower) ||
+                        student.Branch.toLowerCase().includes(searchLower) ||
+                        (student.sports_played_list && student.sports_played_list.toLowerCase().includes(searchLower))
+                    );
+                });
+
+                filteredStudents.sort((a, b) => {
+                    let valA = a[currentSortBy];
+                    let valB = b[currentSortBy];
+
+                    if (typeof valA === 'number' && typeof valB === 'number') {
+                        return currentOrder === 'asc' ? valA - valB : valB - valA;
+                    }
+
+                    if (currentSortBy === 'last_updated_at_raw') {
+                        valA = valA ? `${valA.substring(4, 8)}-${valA.substring(2, 4)}-${valA.substring(0, 2)}` : '0000-01-01';
+                        valB = valB ? `${valB.substring(4, 8)}-${valB.substring(2, 4)}-${valB.substring(0, 2)}` : '0000-01-01';
+                        
+                        const dateA = new Date(valA);
+                        const dateB = new Date(valB);
+                        return currentOrder === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+                    }
+
+                    valA = String(valA || '').toLowerCase();
+                    valB = String(valB || '').toLowerCase();
+                    return currentOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                });
+
+                renderStudentCards(filteredStudents);
+            }
+
+            document.getElementById('student-search-input').addEventListener('keyup', (event) => {
+                currentSearchQuery = event.target.value;
+                filterAndSortStudents();
+            });
+
+            document.getElementById('clear-search').addEventListener('click', () => {
+                document.getElementById('student-search-input').value = '';
+                currentSearchQuery = '';
+                filterAndSortStudents();
+            });
+
+            document.querySelectorAll('.sort-buttons .btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const sortBy = event.currentTarget.dataset.sortBy;
+                    let order = event.currentTarget.dataset.order;
+
+                    if (currentSortBy === sortBy) {
+                        order = (currentOrder === 'asc' ? 'desc' : 'asc');
+                    }
+
+                    currentSortBy = sortBy;
+                    currentOrder = order;
+
+                    document.querySelectorAll('.sort-buttons .btn .material-symbols-outlined:last-child').forEach(icon => {
+                        icon.innerText = 'sort';
+                    });
+                    
+                    const currentIcon = event.currentTarget.querySelector('.material-symbols-outlined:last-child');
+                    currentIcon.innerText = order === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down';
+                    event.currentTarget.dataset.order = order;
+
+                    filterAndSortStudents();
+                });
+            });
+
+            renderStudentCards(studentsData);
+
+            // Pie Chart
+            const filteredStudentsPerSportData = studentsPerSportData.filter(s => s.student_count > 0);
+            const sportNames = filteredStudentsPerSportData.map(s => s.SportName);
+            const studentCounts = filteredStudentsPerSportData.map(s => s.student_count);
+
+            const ctx = document.getElementById('sports-pie-chart').getContext('2d');
+            
+            myPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: sportNames,
+                    datasets: [{
+                        data: studentCounts,
+                        backgroundColor: [
+                            'rgba(76, 123, 217, 0.8)',
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(23, 162, 184, 0.8)',
+                            'rgba(108, 117, 125, 0.8)',
+                            'rgba(111, 66, 193, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(76, 123, 217, 1)',
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(23, 162, 184, 1)',
+                            'rgba(108, 117, 125, 1)',
+                            'rgba(111, 66, 193, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: body.classList.contains('dark-theme') ? '#f8f9fa' : '#212529',
+                                padding: 15,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' students';
+                                    }
+                                    return label;
+                                }
+                            },
+                            titleColor: body.classList.contains('dark-theme') ? '#f8f9fa' : '#212529',
+                            bodyColor: body.classList.contains('dark-theme') ? '#f8f9fa' : '#212529',
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

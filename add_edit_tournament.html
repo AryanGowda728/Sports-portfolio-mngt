@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_edit %}Edit Tournament{% else %}Add Tournament{% endif %} - Student Sport Portfolio</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <span class="brand-icon">🏆</span>
+                Sport Portfolio
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="btn btn-nav-action" href="{{ url_for('dashboard') }}">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                            <span class="nav-text-desktop">Back to Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-nav-action" id="theme-switcher">
+                            <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-nav-action" href="{{ url_for('logout') }}">
+                            <span class="material-symbols-outlined">logout</span>
+                            <span class="nav-text-desktop">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid main-content">
+        <div class="content-wrapper">
+            <header class="page-header">
+                <h1 class="page-title">
+                    {% if is_edit %}
+                        <span class="material-symbols-outlined me-3">edit</span>
+                        Edit Tournament Entry
+                    {% else %}
+                        <span class="material-symbols-outlined me-3">add_circle</span>
+                        Add New Tournament Entry
+                    {% endif %}
+                </h1>
+                <p class="page-subtitle">
+                    {% if is_edit %}
+                        Update your tournament information
+                    {% else %}
+                        Record your sports achievement
+                    {% endif %}
+                </p>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="alerts-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-modern" role="alert">
+                                <div class="alert-content">
+                                    <span class="alert-icon">
+                                        {% if category == 'success' %}
+                                            <span class="material-symbols-outlined">check_circle</span>
+                                        {% elif category == 'danger' %}
+                                            <span class="material-symbols-outlined">error</span>
+                                        {% elif category == 'warning' %}
+                                            <span class="material-symbols-outlined">warning</span>
+                                        {% else %}
+                                            <span class="material-symbols-outlined">info</span>
+                                        {% endif %}
+                                    </span>
+                                    <span class="alert-message">{{ message }}</span>
+                                </div>
+                                <button type="button" class="btn-close-modern" data-bs-dismiss="alert" aria-label="Close">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="row justify-content-center">
+                <div class="col-md-10 col-lg-8">
+                    <div class="card-modern">
+                        <div class="card-body" style="padding: var(--spacing-2xl);">
+                            <form method="POST" action="{% if is_edit %}{{ url_for('edit_tournament', tournament_id=tournament.TournamentID) }}{% else %}{{ url_for('add_tournament') }}{% endif %}">
+                                <input type="hidden" id="selected_sport_id" name="sport_id" value="{{ tournament.SportID if (is_edit and tournament) else '' }}" required>
+
+                                <div class="form-group">
+                                    <label for="sport_id_label" class="form-label">
+                                        <span class="material-symbols-outlined">sports</span>
+                                        Sport
+                                        <span style="color: var(--color-danger);">*</span>
+                                    </label>
+                                    <div id="sport-selection-grid">
+                                        {% set sport_icons = {
+                                            'Cricket': {'type': 'material', 'icon': 'sports_cricket'},
+                                            'Football': {'type': 'material', 'icon': 'sports_soccer'},
+                                            'Weightlifting': {'type': 'material', 'icon': 'fitness_center'},
+                                            'Powerlifting': {'type': 'material', 'icon': 'fitness_center'},
+                                            'Tennis': {'type': 'material', 'icon': 'sports_tennis'},
+                                            'Table Tennis': {'type': 'fontawesome', 'icon': 'fa-table-tennis-paddle-ball'},
+                                            'Basketball': {'type': 'material', 'icon': 'sports_basketball'},
+                                            'Kho Kho': {'type': 'material', 'icon': 'directions_run'},
+                                            'Kabaddi': {'type': 'material', 'icon': 'sports_kabaddi'},
+                                            'Volleyball': {'type': 'material', 'icon': 'sports_volleyball'},
+                                            'Athletics': {'type': 'material', 'icon': 'directions_run'},
+                                            'Badminton': {'type': 'material', 'icon': 'sports_tennis'},
+                                            'Chess': {'type': 'fontawesome', 'icon': 'fa-chess-king'}
+                                        } %}
+                                        {% for sport in sports %}
+                                            {% set icon_info = sport_icons.get(sport.SportName, {'type': 'material', 'icon': 'help'}) %}
+                                            <button type="button" 
+                                                    class="sport-icon-button {% if is_edit and tournament.SportID == sport.SportID %}selected{% endif %}"
+                                                    data-sport-id="{{ sport.SportID }}"
+                                                    data-sport-name="{{ sport.SportName }}">
+                                                {% if icon_info.type == 'material' %}
+                                                    <span class="material-symbols-outlined">{{ icon_info.icon }}</span>
+                                                {% elif icon_info.type == 'fontawesome' %}
+                                                    <i class="fa-solid {{ icon_info.icon }}"></i>
+                                                {% endif %}
+                                                <span>{{ sport.SportName }}</span>
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                    <div id="sport_id_error" class="form-text" style="color: var(--color-danger); display: none;">Please select a sport.</div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="tournament_name" class="form-label">
+                                                <span class="material-symbols-outlined">emoji_events</span>
+                                                Tournament Name
+                                                <span style="color: var(--color-danger);">*</span>
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="tournament_name" 
+                                                   name="tournament_name" 
+                                                   value="{{ tournament.TournamentName if (is_edit and tournament) else '' }}" 
+                                                   required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="tournament_date" class="form-label">
+                                                <span class="material-symbols-outlined">calendar_today</span>
+                                                Date
+                                                <span style="color: var(--color-danger);">*</span>
+                                            </label>
+                                            <input type="date" 
+                                                   class="form-control" 
+                                                   id="tournament_date" 
+                                                   name="tournament_date" 
+                                                   value="{{ display_tournament_date if (is_edit and tournament) else '' }}" 
+                                                   required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="league_level" class="form-label">
+                                                <span class="material-symbols-outlined">military_tech</span>
+                                                League/Level
+                                                <span style="color: var(--color-danger);">*</span>
+                                            </label>
+                                            <select class="form-select" id="league_level" name="league_level" required>
+                                                <option value="">Select Level</option>
+                                                <option value="District" {% if is_edit and tournament and tournament.LeagueLevel == 'District' %}selected{% endif %}>District</option>
+                                                <option value="State" {% if is_edit and tournament and tournament.LeagueLevel == 'State' %}selected{% endif %}>State</option>
+                                                <option value="National" {% if is_edit and tournament and tournament.LeagueLevel == 'National' %}selected{% endif %}>National</option>
+                                                <option value="International" {% if is_edit and tournament and tournament.LeagueLevel == 'International' %}selected{% endif %}>International</option>
+                                                <option value="University Level" {% if is_edit and tournament and tournament.LeagueLevel == 'University Level' %}selected{% endif %}>University Level</option>
+                                                <option value="Club Level" {% if is_edit and tournament and tournament.LeagueLevel == 'Club Level' %}selected{% endif %}>Club Level</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="event_type" class="form-label">
+                                                <span class="material-symbols-outlined">category</span>
+                                                Type of Event
+                                                <span style="color: var(--color-danger);">*</span>
+                                            </label>
+                                            <select class="form-select" id="event_type" name="event_type" required>
+                                                <option value="">Select Event Type</option>
+                                                <option value="Singles" {% if is_edit and tournament and tournament.EventType == 'Singles' %}selected{% endif %}>Singles</option>
+                                                <option value="Doubles" {% if is_edit and tournament and tournament.EventType == 'Doubles' %}selected{% endif %}>Doubles</option>
+                                                <option value="Team Event" {% if is_edit and tournament and tournament.EventType == 'Team Event' %}selected{% endif %}>Team Event</option>
+                                                <option value="Individual" {% if is_edit and tournament and tournament.EventType == 'Individual' %}selected{% endif %}>Individual (e.g., Athletics)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row" id="team_fields" style="display: none;">
+                                    <div class="col-md-6">
+                                        <div class="form-group" id="team_name_field">
+                                            <label for="team_name" class="form-label">
+                                                <span class="material-symbols-outlined">group</span>
+                                                Team Name
+                                                <span id="team_name_required_star" style="color: var(--color-danger); display: none;">*</span>
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="team_name" 
+                                                   name="team_name" 
+                                                   value="{{ tournament.TeamName if (is_edit and tournament) else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group" id="team_role_field">
+                                            <label for="team_role" class="form-label">
+                                                <span class="material-symbols-outlined">assignment_ind</span>
+                                                Role / Primary Position
+                                                <span id="team_role_required_star" style="color: var(--color-danger); display: none;">*</span>
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="team_role" 
+                                                   name="team_role" 
+                                                   value="{{ tournament.TeamRole if (is_edit and tournament) else '' }}">
+                                            <div class="form-text">e.g., Point Guard, Striker, Captain, Defender</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="opponents" class="form-label">
+                                        <span class="material-symbols-outlined">groups</span>
+                                        Opponent(s)
+                                        <span style="color: var(--color-danger);">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="opponents" 
+                                           name="opponents" 
+                                           value="{{ tournament.Opponents if (is_edit and tournament) else '' }}" 
+                                           required>
+                                    <div class="form-text">e.g., "John Doe", "Team Alpha", "Multiple players"</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="coach_name" class="form-label">
+                                        <span class="material-symbols-outlined">sports</span>
+                                        Coach Name
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="coach_name" 
+                                           name="coach_name" 
+                                           value="{{ tournament.CoachName if (is_edit and tournament) else '' }}">
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="student_score" class="form-label">
+                                                <span class="material-symbols-outlined">score</span>
+                                                Your Score
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="student_score" 
+                                                   name="student_score" 
+                                                   value="{{ tournament.StudentScore if (is_edit and tournament) else '' }}">
+                                            <div class="form-text">e.g., "21-18", "3-1 sets"</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="opponent_score" class="form-label">
+                                                <span class="material-symbols-outlined">score</span>
+                                                Opponent Score
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="opponent_score" 
+                                                   name="opponent_score" 
+                                                   value="{{ tournament.OpponentScore if (is_edit and tournament) else '' }}">
+                                            <div class="form-text">e.g., "18-21", "1-3 sets"</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="outcome" class="form-label">
+                                        <span class="material-symbols-outlined">emoji_events</span>
+                                        Outcome
+                                        <span style="color: var(--color-danger);">*</span>
+                                    </label>
+                                    <select class="form-select" id="outcome" name="outcome" required>
+                                        <option value="">Select Outcome</option>
+                                        <option value="Win" {% if is_edit and tournament and tournament.Outcome == 'Win' %}selected{% endif %}>Win</option>
+                                        <option value="Loss" {% if is_edit and tournament and tournament.Outcome == 'Loss' %}selected{% endif %}>Loss</option>
+                                        <option value="Draw" {% if is_edit and tournament and tournament.Outcome == 'Draw' %}selected{% endif %}>Draw</option>
+                                        <option value="Participated" {% if is_edit and tournament and tournament.Outcome == 'Participated' %}selected{% endif %}>Participated</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="achievements_awards" class="form-label">
+                                        <span class="material-symbols-outlined">military_tech</span>
+                                        Achievements or Award (Optional)
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="achievements_awards" 
+                                           name="achievements_awards" 
+                                           value="{{ tournament.AchievementsAwards if (is_edit and tournament) else '' }}">
+                                    <div class="form-text">e.g., "MVP", "Gold Medal", "Top Scorer"</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="notes" class="form-label">
+                                        <span class="material-symbols-outlined">note</span>
+                                        Notes (Optional)
+                                    </label>
+                                    <textarea class="form-control" 
+                                              id="notes" 
+                                              name="notes" 
+                                              rows="3" 
+                                              style="resize: vertical;">{{ tournament.Notes if (is_edit and tournament) else '' }}</textarea>
+                                </div>
+
+                                <div class="form-actions" style="margin-top: var(--spacing-2xl); display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+                                    <button type="submit" class="btn btn-primary-modern" style="flex: 1; min-width: 200px;">
+                                        {% if is_edit %}
+                                            <span class="material-symbols-outlined">save</span>
+                                            Update Tournament
+                                        {% else %}
+                                            <span class="material-symbols-outlined">add_circle</span>
+                                            Add Tournament
+                                        {% endif %}
+                                    </button>
+                                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary-modern" style="flex: 1; min-width: 200px;">
+                                        <span class="material-symbols-outlined">cancel</span>
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeSwitcher = document.getElementById('theme-switcher');
+            const themeIcon = document.getElementById('theme-icon');
+            const body = document.body;
+
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    body.classList.add('dark-theme');
+                    themeIcon.innerText = 'dark_mode';
+                } else {
+                    body.classList.remove('dark-theme');
+                    themeIcon.innerText = 'light_mode';
+                }
+            };
+
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+
+            themeSwitcher.addEventListener('click', () => {
+                const newTheme = body.classList.contains('dark-theme') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+
+            // Sport selection logic
+            const sportSelectionGrid = document.getElementById('sport-selection-grid');
+            const hiddenSportIdInput = document.getElementById('selected_sport_id');
+            const sportIdError = document.getElementById('sport_id_error');
+            const sportButtons = sportSelectionGrid.querySelectorAll('.sport-icon-button');
+
+            const initialSportId = hiddenSportIdInput.value;
+            if (initialSportId) {
+                sportButtons.forEach(button => {
+                    if (button.dataset.sportId === initialSportId) {
+                        button.classList.add('selected');
+                    }
+                });
+            }
+
+            sportButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    sportButtons.forEach(btn => btn.classList.remove('selected'));
+                    button.classList.add('selected');
+                    hiddenSportIdInput.value = button.dataset.sportId;
+                    sportIdError.style.display = 'none';
+                });
+            });
+            
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(event) {
+                if (!hiddenSportIdInput.value) {
+                    sportIdError.style.display = 'block';
+                    event.preventDefault();
+                } else {
+                    sportIdError.style.display = 'none';
+                }
+            });
+
+            // Team fields logic
+            const eventTypeSelect = document.getElementById('event_type');
+            const teamFields = document.getElementById('team_fields');
+            const teamNameInput = document.getElementById('team_name');
+            const teamNameRequiredStar = document.getElementById('team_name_required_star');
+            const teamRoleInput = document.getElementById('team_role');
+            const teamRoleRequiredStar = document.getElementById('team_role_required_star');
+
+            const toggleTeamFields = () => {
+                const selectedEventType = eventTypeSelect.value;
+                
+                if (selectedEventType === 'Doubles' || selectedEventType === 'Team Event') {
+                    teamFields.style.display = 'flex';
+                    teamNameInput.setAttribute('required', 'required');
+                    teamNameRequiredStar.style.display = 'inline';
+                } else {
+                    teamFields.style.display = 'none';
+                    teamNameInput.removeAttribute('required');
+                    teamNameInput.value = '';
+                    teamNameRequiredStar.style.display = 'none';
+                }
+
+                if (selectedEventType === 'Team Event') {
+                    teamRoleInput.setAttribute('required', 'required');
+                    teamRoleRequiredStar.style.display = 'inline';
+                } else {
+                    teamRoleInput.removeAttribute('required');
+                    teamRoleInput.value = '';
+                    teamRoleRequiredStar.style.display = 'none';
+                }
+            };
+
+            toggleTeamFields();
+            eventTypeSelect.addEventListener('change', toggleTeamFields);
+        });
+    </script>
+</body>
+</html>

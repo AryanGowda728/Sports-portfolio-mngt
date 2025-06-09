@@ -1,1 +1,1 @@
-# Sports-portfolio-mngt
+# Sports-portfolio-management system
